@@ -1,0 +1,90 @@
+% Geometry and Layout
+    \usepackage[margin=0.75in]{geometry}
+    \usepackage{parskip}
+    \usepackage{placeins} % FloatBarrier
+
+% Graphics and Diagrams
+    \usepackage{wrapfig}
+
+    \usepackage{xcolor}
+    \usepackage{graphicx} % Required for inserting images
+    \usepackage[american]{circuitikz}
+    \usepackage{tikz}
+    \usepackage{tikz-3dplot}
+    \usetikzlibrary{arrows.meta}
+    \usetikzlibrary{positioning}  % Add this line to load the positioning library
+    \usepackage{pgfplots}
+    \pgfplotsset{compat=newest}
+    \usepackage{listings}
+    \usepackage{tcolorbox}
+
+% CSV Table input
+    \usepackage[table]{xcolor}
+    \usepackage{csvsimple, booktabs}
+
+% Code Chunk Formatting
+    \definecolor{comment_color}{rgb}{0.52,0.38,0.78}
+    \definecolor{keyword_color}{rgb}{0.84,0.27,0.3}
+    \definecolor{background_color}{rgb}{0.95,0.95,0.95}
+    \usepackage{inconsolata} % Consolas-style font from the inconsolata package
+
+\lstset{
+    backgroundcolor=\color{background_color},   % Choose the background color
+    commentstyle=\color{comment_color},       % Style of comments
+    keywordstyle=\color{keyword_color},        % Style of keywords
+    stringstyle=\color{red},              % Style of strings, assuming red
+    basicstyle=\tiny\ttfamily, % Set font size, monospaced font, and color        
+    breakatwhitespace=false,              % Automatic line breaking only at whitespace
+    breaklines=true,                      % Automatic line breaking
+    captionpos=t,                         % Caption position is on top
+    keepspaces=true,                      % Keeps spaces in text
+    numbers=left,                         % Line number position
+    numbersep=5pt,                        % How far the line numbers are from the code
+    showspaces=false,                     % Show spaces in the code
+    showstringspaces=false,               % Underline spaces within strings only
+    showtabs=true,                       % Show tabs within strings adding particular underscores
+    % framexleftmargin=5pt,                       % Extra space on the left for better aesthetics
+    xleftmargin=0.05\textwidth,                 % Indent from the left
+    xrightmargin=0.05\textwidth,                % Indent from the right
+    tabsize=1,                            % Sets default tab size
+    title=\lstname                        % Show the filename of files included with \lstinputlisting
+}
+% Text Content / Math
+    \usepackage{lipsum} % Dummy text
+    \usepackage{hyperref}
+    \usepackage{amsmath} % For sum symbol and other math formatting
+    \usepackage{amssymb}
+
+% Headers and Footers
+    \usepackage{lastpage}
+    \usepackage{fancyhdr}
+    \makeatletter
+    \renewcommand{\@seccntformat}[1]{}
+    \makeatother
+    \pagestyle{fancy}
+    \fancyhf{} 
+    \setlength{\headheight}{15pt}
+    \fancyhead[L]{\subjectcode{} - \doctitle{}}
+    \fancyhead[R]{} % Rearrange as you please
+    \fancyfoot[L]{\name{}}
+    \fancyfoot[R]{Page \thepage\ of \pageref{LastPage}} 
+    \renewcommand{\headrulewidth}{0pt}
+
+% Caption and Referencing Customization
+    \usepackage[justification=centering]{caption}
+    \usepackage{cleveref}
+    \usepackage{nameref}
+    \DeclareCaptionLabelSeparator{IEEE}{.\quad }
+    \captionsetup[figure]{name=Fig., labelsep=IEEE}
+    \captionsetup{format=hang, labelfont=bf}
+    \captionsetup{justification=raggedright,singlelinecheck=false}
+
+% Document Metadata and First Page Formatting
+    \title{\doctitle{}\\\large{James Cook University Cairns}}
+    \author{\name{} (\studentnumber{})}
+    \date{\today}
+
+% Referencing
+
+    \usepackage[noadjust]{cite} % For IEEE-style citations
+    \renewcommand{\refname}{} % Remove "References" title
