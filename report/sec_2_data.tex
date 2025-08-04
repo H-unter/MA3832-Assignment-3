@@ -1,8 +1,9 @@
+\newpage
+
 \section{Dataset}
 
 The dataset used for this project was a competition dataset from Hugging Face, held in 2023 \cite{huggingface_competitions_aiornot}.
 The dataset consists of 62,060 images, and is 2.37GB in size, being pre-split into training and tesing sets, as summarised in \cref{tab:dataset_summary,tab:class_counts}, where it can be seen that the testing set has the class labels withheld due to the competition setting, restricting this analysis to the 18,618 training images, which we can sub-divide and validate with known labels.
-
 
 \begin{table}[h]
     \centering
@@ -33,5 +34,9 @@ The dataset consists of 62,060 images, and is 2.37GB in size, being pre-split in
     \caption{Counts of each class label in the training and testing sets, where it can be seen that the testing set has the class labels withheld due to the competition setting}
     \label{tab:class_counts}
 \end{table}
+
+\Cref{code:data_wrangling} shows the code used to load the dataset, and split it into training, validation, and test sets \note{have a look at this later}. The code demonstrates how the data is imported. Since Hugging Face datasets are not natively compatible with TensorFlow, the dataset is converted to a TensorFlow dataset using the \texttt{to\_tf\_dataset()} method. \note{will need to mention s3 buckets}
+
+\lstinputlisting[language=Python, caption=Data Wrangling Script, label=code:data_wrangling]{code_chunks/sec_2_data_wrangling.py}
 
 
