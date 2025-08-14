@@ -35,8 +35,8 @@ The dataset consists of 62,060 images, and is 2.37GB in size, being pre-split in
     \label{tab:class_counts}
 \end{table}
 
-\Cref{code:data_wrangling} shows the code used to load the dataset, and split it into training, validation, and test sets \note{have a look at this later}. The code demonstrates how the data is imported. Since Hugging Face datasets are not natively compatible with TensorFlow, the dataset is converted to a TensorFlow dataset using the \texttt{to\_tf\_dataset()} method. \note{will need to mention s3 buckets}
+\Cref{code:data_wrangling} shows the code used to load the dataset, and split it into training, validation, and test sets \note{have a look at this later} \note{sub splitting of the data was reasoned to be the best strategy, as having a smaller dataset on which to train, \code{small_train}, it would be more conducive to iteration in the hyperparameter tuning process, and the optimal hyperparameters could then be transferred onto the main model, which would be trained on the full training dataset}. The code demonstrates how the data is imported. Since Hugging Face datasets are not natively compatible with TensorFlow, the dataset is converted to a TensorFlow dataset using the \texttt{to\_tf\_dataset()} method. 
 
-\lstinputlisting[language=Python, caption=Data Wrangling Script, label=code:data_wrangling]{code_chunks/sec_2_data_wrangling.py}
+\lstinputlisting[language=Python, caption=Data Wrangling Script \note{NEED TO CHANGE}, label=code:data_wrangling]{code_chunks/sec_2_data_wrangling.py}
 
-
+This data was converted to npz files, due to their efficient storage and loading capabilities. After conversion, the data was uploaded to an S3 bucket for easy access during model training and evaluation. Uploading to S3 buckets was critical, as it meant that there was no longer a reliance on the RAM allocation of the sagemaker notebook environment - it could be loaded in from the S3 bucket in batches, which has the benefit of being a more scalable solution.
