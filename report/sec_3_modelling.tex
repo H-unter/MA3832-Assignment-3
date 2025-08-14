@@ -6,7 +6,11 @@
 
 The model is a convolutional neural network (CNN) designed for binary image classification. It accepts full-size images of shape $(512, 512, 3)$, which are downscaled to $(256, 256, 3)$ for computational efficiency. The architecture consists of two convolutional layers, each followed by a pooling layer (either max or average pooling, chosen as a hyperparameter) and optional dropout for regularization. After flattening, a dense layer with tunable units and optional dropout is added, followed by a single sigmoid output neuron for binary classification.
 
-Key hyperparameters include the number of filters and kernel sizes in each convolutional layer, pooling type, dropout usage and rates, dense layer units, optimizer type, and learning rate. The model uses either Adam or RMSprop optimizers, with the learning rate also being tunable.
+Key hyperparameters include the number of filters and kernel sizes in each convolutional layer, pooling type, dropout usage and rates, dense layer units, optimizer type, and learning rate. The model uses either Adam or RMSprop optimizers, with the learning rate also being tunable. It was deemed important to test at least 2 different optimisers, as it is known that different optimisers can entail tradeoffs in convergence speed and final loss.
+
+Adam was chosen as one of the considered optimisers, as it is known to converge rapidly, and rectifies vanishing learning rate and high variance, therefore being the most popular optimiser \cite{RAIAAN2024100470}
+
+\note{RMSProp} was considered as the second optimizer due to \note{continue}
 
 Early stopping is employed to prevent overfitting by monitoring validation loss and restoring the best weights if no improvement is seen for 5 epochs.
 
