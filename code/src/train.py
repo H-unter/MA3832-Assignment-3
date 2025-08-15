@@ -80,7 +80,7 @@ def main():
         pooling=args.pooling,
     )
     if args.optimizer == "adagrad":
-        optimizer_choice = tf.keras.optimizers.AdaGrad(learning_rate=args.learning_rate)
+        optimizer_choice = tf.keras.optimizers.Adagrad(learning_rate=args.learning_rate)
     else:
         optimizer_choice = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
 
@@ -103,8 +103,30 @@ def main():
     model.save(os.path.join(args.model_dir, "1"))
 
     final_val = history.history.get("val_binary_accuracy", [None])[-1]
-    if final_val is not None:
-        print("val_accuracy:", round(final_val, 4))
+    print("val_accuracy:", round(final_val, 4))
+
+    
+    prec_m = tf.keras.metrics.Precision()
+    rec_m  = tf.keras.metrics.Recall()
+    auc_m  = tf.keras.metrics.AUC()
+    
+    for xb, yb in val_ds:
+        probs = model.predict(xb, verbose=0)
+        y_true = tf.cast(yb, tf.int32)
+        y_pred = tf.cast(tf.round(probs), tf.int32)
+        prec_m.update_state(y_true, y_pred)
+        rec_m.update_state(y_true, y_pred)
+        auc_m.update_state(y_true, probs)
+    prec = float(prec_m.result().numpy())
+    rec = float(rec_m.result().numpy())
+    auc = float(auc_m.result().numpy())
+    f1 = 2 * prec * rec / (prec + rec + 1e-12)
+    
+    # Print lines exactly in this format so metric_definitions regex can match them
+    print(f"val_precision: {prec:.6f}")
+    print(f"val_recall: {rec:.6f}")
+    print(f"val_f1: {f1:.6f}")
+    print(f"val_auc: {auc:.6f}")
 
 
 if __name__ == "__main__":
