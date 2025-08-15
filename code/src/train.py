@@ -51,6 +51,7 @@ def main():
     parser.add_argument("--pooling", choices=["max", "avg"], default="max")
     parser.add_argument("--use-dropout", type=str2bool, default=True)
     parser.add_argument("--dropout-rate", type=float, default=0.2)
+    parser.add_argument("--optimizer", choices=["adam", "adagrad"], default="adam")
 
     # data / I/O
     parser.add_argument("--height", type=int, default=512)
@@ -58,7 +59,7 @@ def main():
     parser.add_argument("--channels", type=int, default=3)
     parser.add_argument("--train", type=str, default=os.environ.get("SM_CHANNEL_TRAIN"))
     parser.add_argument("--test", type=str, default=os.environ.get("SM_CHANNEL_TEST"))
-    parser.add_argument("--model_dir", type=str, default=os.environ.get("SM_MODEL_DIR", "/opt/ml/model"))
+    parser.add_argument("--model_dir", type=str, default=os.environ.get("SM_MODEL_DIR"))
     parser.add_argument("--limit", type=int, default=None)
 
     args = parser.parse_args()
@@ -78,9 +79,13 @@ def main():
         dropout_rate=args.dropout_rate,
         pooling=args.pooling,
     )
+    if args.optimizer == "adagrad":
+        optimizer_choice = tf.keras.optimizers.AdaGrad(learning_rate=args.learning_rate)
+    else:
+        optimizer_choice = tf.keras.optimizers.Adam(learning_rate=args.learning_rate)
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(args.learning_rate),
+        optimizer=optimizer_choice,
         loss="binary_crossentropy",
         metrics=[
             tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
