@@ -59,10 +59,30 @@ def main():
     parser.add_argument("--channels", type=int, default=3)
     parser.add_argument("--train", type=str, default=os.environ.get("SM_CHANNEL_TRAIN"))
     parser.add_argument("--test", type=str, default=os.environ.get("SM_CHANNEL_TEST"))
-    parser.add_argument("--model_dir", type=str, default=os.environ.get("SM_MODEL_DIR"))
+    parser.add_argument(
+        "--model-dir", "--model_dir",
+        dest="model_dir",
+        type=str,
+        default=os.environ.get("SM_MODEL_DIR", "/opt/ml/model"),
+        help="Directory to write model artifacts (accepts --model-dir or --model_dir)."
+    )
+    sm_model_dir = os.environ.get("SM_MODEL_DIR", "/opt/ml/model")
+
+
+    
+    
     parser.add_argument("--limit", type=int, default=None)
 
     args = parser.parse_args()
+    if args.model_dir and str(args.model_dir).startswith("s3://"):
+        # someone passed an s3 path — override and warn
+        print(f"WARNING: args.model_dir is an S3 URI ({args.model_dir}). Overriding to local SM_MODEL_DIR: {sm_model_dir}")
+        save_model_dir = sm_model_dir
+    else:
+        save_model_dir = args.model_dir or sm_model_dir
+    print("Resolved model save directory:", save_model_dir)
+    # make sure the directory exists
+    os.makedirs(save_model_dir, exist_ok=True)
 
     train_path = find_npz(args.train)
     val_path = find_npz(args.test)
@@ -100,7 +120,7 @@ def main():
         verbose=1
     )
 
-    model.save(os.path.join(args.model_dir, "1"))
+    model.save(os.path.join(save_model_dir, "1"))
 
     final_val = history.history.get("val_binary_accuracy", [None])[-1]
     print("val_accuracy:", round(final_val, 4))
