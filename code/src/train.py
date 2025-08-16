@@ -67,10 +67,6 @@ def main():
         help="Directory to write model artifacts (accepts --model-dir or --model_dir)."
     )
     sm_model_dir = os.environ.get("SM_MODEL_DIR", "/opt/ml/model")
-
-
-    
-    
     parser.add_argument("--limit", type=int, default=None)
 
     args = parser.parse_args()
