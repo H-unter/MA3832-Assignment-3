@@ -3,7 +3,6 @@ def build_model( # below are default values, but these are all tunable
 ):
     inputs = keras.Input(shape=input_shape)
     x = keras.layers.Rescaling(1.0 / 255)(inputs)
-
     # conv block 1
     x = keras.layers.Conv2D(int(conv1_filters), 3, activation="relu", padding="same")(x)
     x = keras.layers.MaxPooling2D()(x) if pooling == "max" else keras.layers.AveragePooling2D()(x)
@@ -11,8 +10,6 @@ def build_model( # below are default values, but these are all tunable
     # conv block 2
     x = keras.layers.Conv2D(int(conv2_filters), 3, activation="relu", padding="same")(x)
     x = keras.layers.MaxPooling2D()(x) if pooling == "max" else keras.layers.AveragePooling2D()(x)
-
-
     if pooling == "max":
         x = keras.layers.GlobalMaxPooling2D()(x)
     else:
@@ -22,6 +19,5 @@ def build_model( # below are default values, but these are all tunable
     x = keras.layers.Dense(int(dense_units), activation="relu")(x)
     if use_dropout:
         x = keras.layers.Dropout(float(dropout_rate))(x)
-
     outputs = keras.layers.Dense(1, activation="sigmoid")(x)
     return keras.Model(inputs, outputs)
