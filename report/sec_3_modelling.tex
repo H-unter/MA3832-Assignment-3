@@ -11,27 +11,29 @@ With the data acquired from HuggingFace, the process of making a machine learnin
     \lstinputlisting[language=Python, caption=Model definition code extract, label=code:model_definition]{code_chunks/sec_3_model.py}
 \end{figure}
 
-For the first section, a \code{Conv2D} layer was applied with a kernel size of $3{\times}3$ and a tunable number of filters, $f_{1}$. The stride was fixed at its default value of $1$, with padding set to \emph{same} which preserves the spatial dimensions of the input feature maps, at the cost of increased computational cost. A \code{ReLU} activation function was used due to its simplicity and its ability to address vanishing gradients.
+The architecture began with a \code{Conv2D} layer using a $3{\times}3$ kernel and a tunable number of filters $f_{1}$. The stride was set to the default value of 1, and padding was set to \emph{same} to preserve spatial dimensions, at the cost of increased computation. A \code{ReLU} activation function was applied due to its simplicity and effectiveness in addressing vanishing gradients.
 
-This was followed by a pooling layer, where either max pooling or average pooling could be selected. By default, the pooling operation uses a window of size $2{\times}2$ with stride $2$, reducing the spatial resolution of the feature maps by half while retaining the most salient information.
+This was followed by a pooling layer, with either max or average pooling selectable. By default, pooling used a $2{\times}2$ window with stride 2, therefore halving the spatial dimensions while retaining salient features.
 
-The second convolutional block repeated this process with a kernel size of $3{\times}3$ and a tunable number of filters, $f_{2}$, again followed by either max or average pooling with window size $2{\times}2$ and stride $2$.
+A second convolutional block repeated this pattern with a $3{\times}3$ kernel and tunable filter count $f_{2}$, again followed by max or average pooling with the same parameters.
 
-After the two convolutional blocks, a global pooling layer was applied to remove the spatial dimensions, with a max or average pooling being optional. The dense head consisted of a flattening step, followed by a fully connected layer with $d$ units and ReLU activation. An optional dropout layer with rate $p$ was included for regularisation. The final output layer was a single neuron with sigmoid activation, producing a probability for binary classification.
+After the convolutional blocks, a global pooling layer removed spatial dimensions, with max or average pooling selectable. The dense head consisted of a flattening layer, followed by a fully connected layer with $d$ units and \code{ReLU} activation. An optional dropout layer with rate $p$ was included for regularisation. The final output layer was a single neuron with sigmoid activation, producing a probability for binary classification.
 
-Adam was chosen as one of the considered optimisers, as it is known to converge rapidly, and rectifies vanishing learning rate and high variance, therefore being the most popular optimiser \cite{RAIAAN2024100470}. Adagrad was chosen as the second potential optimiser, as the learning rate would not need manual tuning, and is known to perform better than alternatives like SGD, MBGD, and primitive momentum based optimisers. Though it should be noted that it has the weakness of a constantly decreasing learning rate, resulting in slower convergence \cite{RAIAAN2024100470}
+Adam was selected as one of the two selectable optimisers due to its rapid convergence and robustness to vanishing learning rates and high variance, making it widely used in practice \cite{RAIAAN2024100470}. Adagrad was used as the secondary selectable optimiser, as it eliminates the need for manual learning rate tuning and generally outperforms simpler methods like SGD or momentum-based optimisers. However, its performance may degrade over time due to a monotonically decreasing learning rate, which slows convergence \cite{RAIAAN2024100470}.
 
-The loss function that was used for this model was binary cross-entropy, as it is the most suitable loss function for binary classification tasks. Each model training instance was trained for 3 epochs, on a \code{ml.c5.2xlarge} instance type, favoring low cost over time efficiency.
+Finally, binary cross-entropy was used as the loss function, being most appropriate for binary classification. Each model was trained for 3 epochs on an \code{ml.c5.2xlarge} instance, prioritising cost-efficiency over training speed.
+
 
 \newpage
 
 \subsection{Hyperparameter Tuning with Hyperband}
 
-Hyperparameter tuning was performed to maximise the models performance through iteration of most of its parameters. The hyperparamter tuning process was performed on the small train set, for faster iteration.
+Hyperparameter tuning was conducted to maximise model performance by iteratively adjusting key parameters. This process was performed on the small training set to enable faster experimentation, with the intention of applying the optimal hyperparameters to train a final model on the full training set.
 
-\Cref{tab:tunable_hyperparameters}, summarises the code snippets seen in \cref{code:hyperparameter_tuning}, depicting a list of the parameters being tuned in the above model, as well as the final value that the tuner settled on. It is evident that this was a very large parameter space, and it is therefore not feasible to find the best possible hyperparamer using a simple grid search. Instead, the Hyperband algorithm was used to tune the hyperparameters, as it is a bandit-based algorithm that uses early stopping to focus on the most promising hyperparameter combinations \cite{hyperband}.
+\Cref{tab:tunable_hyperparameters} summarises the code snippets shown in \cref{code:hyperparameter_tuning}, listing the parameters tuned for the model along with the final values selected by the tuner. Given the size of the search space, an exhaustive grid search was not feasible. Instead, the Hyperband algorithm was used, leveraging early stopping to efficiently allocate resources to the most promising hyperparameter configurations \cite{hyperband}.
 
-Following the initial tuning on the smaller dataset, the best hyperparameters were selected and used to train the model on the larger training set, the start of this can be seen in \cref{code:hyperparameter_extraction}
+Following the initial tuning on the small training set, the best performing hyperparameters were extracted and applied to train the final model on the full training set. The beginning of this process is shown in \cref{code:hyperparameter_extraction}.
+
 
 \begin{table}[h]
     \centering
@@ -65,7 +67,8 @@ Following the initial tuning on the smaller dataset, the best hyperparameters we
 
 \section{Model Deployment} \label{sec:model_deployment}
 
-This model, along with the transfer learning model described in \cref{sec:transfer_learning}, was deployed using Amazon SageMaker, as shown in \cref{fig:endpoint}. The deployment code is provided in \cref{code:deployment_endpoint}, which includes exception handling to initialise the \code{main_model_predictor} only if it is not already in memory. \Cref{code:deployment_endpoint} also includes the inference logic used to generate predictions on the holdout set. Further discussion of the deployment process and associated challenges is provided in the AWS reflection section (\cref{sec:model_deployment}).
+This model, along with the transfer learning model described later, in \cref{sec:transfer_learning}, was deployed using Amazon SageMaker, as illustrated in \cref{fig:endpoint}. The deployment process is detailed in \cref{code:deployment_endpoint}, which includes exception handling to initialise \code{main_model_predictor} only if it is not already present in memory. The same script also contains the inference logic used to generate predictions on the holdout set. Further discussion of the deployment workflow and challenges encountered is provided in the AWS reflection section (\cref{sec:model_deployment,sec:aws_reflection}).
+
 
 \begin{figure}[h]
     \centering
@@ -83,10 +86,9 @@ This model, along with the transfer learning model described in \cref{sec:transf
 
 \section{Transfer Learning} \label{sec:transfer_learning}
 
-Several CNN architectures are available for transfer learning, as outlined in \cite{keras_applications}. EfficientNetV2 was selected due to its demonstrated balance between accuracy and computational efficiency on general image classification tasks, making it suitable for the diverse image content in the aiornot dataset \cite{keras_applications, tan2021efficientnetv2}.
+Several CNN architectures are available for transfer learning, as outlined in \cite{keras_applications}. EfficientNetV2 was selected for its strong balance between accuracy and computational efficiency on general image classification tasks, making it well suited to the diverse image content of the aiornot dataset \cite{keras_applications, tan2021efficientnetv2}.
 
-EfficientNetB0, pre-trained on ImageNet, was used as a feature extractor with its classification head removed and average pooling applied. The final 10\% of layers were unfrozen to enable fine-tuning. A dropout layer with rate $p$ was included for regularisation, followed by a dense output layer with sigmoid activation to produce a binary class probability. The model accepted inputs of shapes that were smaller than the original 500x500 due to issues with memory allocation during training. The \code{src/transfer_learning.py} script defined the model and training logic, and was invoked by the \code{transfer_learning.ipynb} notebook; selected code snippets are shown in \cref{code:transfer_learning_code}.
-
+EfficientNetB0, pre trained on ImageNet, was used as a feature extractor with its classification head removed and average pooling applied. The final 10\% of layers were unfrozen to enable fine-tuning. A dropout layer with rate $p$ was included for regularisation, followed by a dense output layer with sigmoid activation to produce a binary class probability. The model accepted inputs of shapes that were smaller than the original 500x500 due to issues with memory allocation during training. The \code{src/transfer_learning.py} script defined the model and training logic, and was invoked by the \code{transfer_learning.ipynb} notebook; selected code snippets are shown in \cref{code:transfer_learning_code}.
 
 \begin{figure}[h]
     \lstinputlisting[language=Python, caption=Transfer Learning Code Snippet, label=code:transfer_learning_code]{code_chunks/sec_5_transfer_learning.py}
@@ -99,7 +101,8 @@ The model was then deployed to a SageMaker endpoint using the same strategy show
 
 \section{Model Comparison And Evaluation}
 
-In this section, we compare the performance of the different models trained on the dataset. Evaluation metrics were calculated by invoking the model endpoints on the holdout set, which was not used during training or validation. This ensures that the models' performance is on unseen data, better modelling a general use case.
+This section compares the performance of the models trained on the dataset. Evaluation metrics were obtained by invoking the deployed endpoints on the holdout set, which was not used during training or validation. This approach ensures that performance is measured on unseen data, providing a more realistic indication of generalisation to real world use cases. The results of the model evaluation are summarised in \Cref{tab:model_comparison}
+
 
 \begin{table}[h]
 \centering
@@ -125,7 +128,7 @@ $\text{abs}(\text{Difference}) $ & 0.002 & 0.042 & 0.057 & 0.006 \\
     \label{fig:confusion_matrixes} % Label
 \end{figure}
 
-The results of the model evaluation are summarized in \Cref{tab:model_comparison}. The table highlights the key performance indicators for each model. It can be seen that the EfficientNet transfer learning model and the main model have very comparable performance - with the EfficientNet model and main model achieving an accuracy of 85.6\% and 85.4\% respectively - a difference of only 0.2\%. Furthermore the EfficientNet and main model achieved F1 scores of 0.862 and 0.868 respectively, a difference of only 0.006.
+ \Cref{tab:model_comparison} highlights the key performance indicators for each model. It can be seen that the EfficientNet transfer learning model and the main model have very comparable performance - with the EfficientNet model and main model achieving an accuracy of 85.6\% and 85.4\% respectively - a difference of only 0.2\%. Furthermore the EfficientNet and main model achieved F1 scores of 0.862 and 0.868 respectively, a difference of only 0.006.
 
 Where these models differ is their precision and recall. The EfficientNet model achieved a precision of 87.5\% (4.2\% higher than the main models' 83.3\%.) The main model achieved a recall of 90.6\% (5.7\% higher than the EfficientNet models' 84.9\%.) This means that the EfficientNet model is better at minimising false positive AI detection, whereas the main model is better at detecting AI cases without missing them (i.e. reducing false negatives). This is evident in \cref{fig:confusion_matrixes}, where the EfficientNet model has 32 false posiives compared to the main models' 48. Similarly, the main model has only 25 false negatives, compared to the EfficientNet models' 40.
 
@@ -133,7 +136,7 @@ Where these models differ is their precision and recall. The EfficientNet model 
 
 \section{AWS Sagemaker Information and Discussion} \label{sec:aws_reflection}
 
-This project was developed using AWS SageMaker. \Cref{fig:jupyter_lab_space_config} shows the JupyterLab environment configuration used. The smallest available instance type, \code{ml.t3.medium}, was selected for the notebook environment, as model training was offloaded to separate training jobs with dedicated compute resources. Each training job used the \code{ml.c5.2xlarge} instance type, chosen for its higher RAM and CPU availability.
+This project was developed using AWS SageMaker. \Cref{fig:jupyter_lab_space_config} shows the JupyterLab environment configuration used. The smallest available instance type, \code{ml.t3.medium}, was selected for the notebook environment, as model training was offloaded to separate training jobs with dedicated compute resources. Each training job used the \code{ml.c5.2xlarge} instance type, chosen for its higher RAM and CPU resources whilst still being cost effective.
 
 \Cref{fig:file_top,fig:file_src} shows the file structure used in the project, as run within the JupyterLab environment. The model definition code (\code{src/model_def.py} and \code{src/transfer_model.py}) and the training scripts (\code{src/train.py} and \code{src/train_transfer.py}) were separated from the main notebooks to improve modularity and reusibility for any case where another notebook would need to call upon these models' structure.
 

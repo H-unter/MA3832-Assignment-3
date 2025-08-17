@@ -38,16 +38,11 @@ The dataset consists of 62,060 images, and is 2.37GB in size, being pre-split in
     \end{minipage}
 \end{table*}
 
-\Cref{code:data_wrangling} shows the code used to load the dataset, and split it into training, validation, and test sets. It can be seen that the splitting method for the data was to 
-- holdout 500 images for final testing (only 500 was chosen due to a bandwidth issue on the AWS endpoint, further elaborated on in \Cref{sec:model_deployment}),
-- split the remaining training data into three sets, the small train, train and test set, being 10\%, 70\%, and 20\% of the remaining data respectively.
-- to ensure class balance between these sets, random oversampling was employed. This was because \cref{tab:class_counts} shows that if a model were to guess AI all the time, it could get an accuracy of 55.5\%
+The first step in the project involved preparing the dataset for training and evaluation. The dataset was initially loaded from HuggingFace and converted to NumPy arrays to enable further processing. A holdout set of 500 images was separated for final testing, with the size constrained by bandwidth limitations on the AWS endpoint, as discussed in \cref{sec:model_deployment}. 
 
-\Cref{code:data_wrangling}, in the appendix shows the code used to load the dataset from HuggingFace. It can then be seen that the splitting sceme described above is done using hugging faces \code{train_test_split} method. The HuggingFace dataset object is converted to numpy arrays. Then \code{Imblearn}'s \code{RandomUnderSampler} is used to ensure class balance, as to not bias the majority class.
+The remaining data was split into three subsets: a small training set (10\%), a main training set (70\%), and a validation set (20\%), using HuggingFace's \code{train_test_split} method. To ensure class balance and avoid bias toward the majority class, \code{Imblearn}'s \code{RandomUnderSampler} was applied. This was required, because, as shown in \cref{tab:class_counts}, a model predicting only the majority class (AI-generated) could reach 55.5\% accuracy. 
 
-
-
-This data was converted to npz files, due to their efficient storage and loading capabilities. After conversion, the data was uploaded to an S3 bucket for easy access during model training and evaluation. Uploading to S3 buckets was critical, as it meant that there was no longer a reliance on the RAM allocation of the sagemaker notebook environment - it could be loaded in from the S3 bucket in batches, which has the benefit of being a more scalable solution.
+The processed data was then saved as \code{.npz} files for efficient storage and loading, and uploaded to an S3 bucket to enable access during model training without being constrained by the RAM limits of the SageMaker notebook environment. \Cref{fig:s3_bucket} depicts a screenshot of the uploaded directories, each containing their respective \code{.npz} file. The data preprocessing code described above is provided in \cref{code:data_wrangling} in the appendix. 
 
 \begin{figure}[h]
     \centering
