@@ -6,7 +6,7 @@
 With the data acquired from HuggingFace, the process of making a machine learning model could begin. The model that was developed was a convolutional neural network (CNN). It accepts full-size images of shape $(512, 512, 3)$, with each image being an rgb image with values ranging from 0 to 255. \Cref{code:model_definition} shows the \code{src/model.py} file, which was called by the \code{main.ipynb} and \code{src/train.py} files to train and tune the model.
 
 \begin{figure}[h]
-    \lstinputlisting[language=Python, caption=Model definition code, label=code:model_definition]{code_chunks/sec_3_model.py}
+    \lstinputlisting[language=Python, caption=Model definition code extract, label=code:model_definition]{code_chunks/sec_3_model.py}
 \end{figure}
 
 For the first section, a \code{Conv2D} layer was applied with a kernel size of $3{\times}3$ and a tunable number of filters, $f_{1}$. The stride was fixed at its default value of $1$, with padding set to \emph{same} which preserves the spatial dimensions of the input feature maps, at the cost of increased computational cost. A \code{ReLU} activation function was used due to its simplicity and its ability to address vanishing gradients.
@@ -27,36 +27,33 @@ The loss function that was used for this model was binary cross-entropy, as it i
 
 Hyperparameter tuning was performed to maximise the models performance through iteration of most of its parameters. The hyperparamter tuning process was performed on the small train set, for faster iteration.
 
-\Cref{tab:tunable_hyperparameters}, summarises the code snippets seen in \cref{code:hyperparameter_tuning}, depicting a list of the parameters being tuned in the above model. It is evident that this is a very large parameter space, and it is therefore not feasible to find the best possible hyperparamer.
-
-The Hyperband algorithm is used for hyperparameter optimization. Hyperband eliminates poorly performing hyperparameter combinations and focuses on promising ones, thus saving computational time compared to other methods like Bayesian optimization and grid search. 
+\Cref{tab:tunable_hyperparameters}, summarises the code snippets seen in \cref{code:hyperparameter_tuning}, depicting a list of the parameters being tuned in the above model, as well as the final value that the tuner settled on. It is evident that this was a very large parameter space, and it is therefore not feasible to find the best possible hyperparamer using a simple grid search. Instead, the Hyperband algorithm was used to tune the hyperparameters, as it is a bandit-based algorithm that uses early stopping to focus on the most promising hyperparameter combinations \cite{hyperband}.
 
 Following the initial tuning on the smaller dataset, the best hyperparameters were selected and used to train the model on the larger training set, the start of this can be seen in \cref{code:hyperparameter_extraction}
+
+\begin{table}[h]
+    \centering
+    \caption{Tunable Hyperparameters and Final Chosen Values (see implementation snippets in \cref{code:hyperparameter_tuning})}
+    \begin{tabular}{lll}
+    \toprule
+    \textbf{Hyperparameter} & \textbf{Range/Choices} & \textbf{Final Value} \\
+    \midrule
+    learning rate           & $1{\times}10^{-4}$ to $1{\times}10^{-2}$ (log scale) & 0.00149 \\
+    dropout-rate            & $0.0$ to $0.5$ (used if \texttt{use-dropout=true}) & 0.284 \\
+    conv1-filters ($f_1$)   & $16$ to $128$ & 24 \\
+    conv2-filters ($f_2$)   & $32$ to $256$ & 107 \\
+    dense-units ($d$)       & $64$ to $512$ & 254 \\
+    pooling                 & \texttt{max}, \texttt{avg} & max \\
+    use-dropout             & \texttt{true}, \texttt{false} & true \\
+    optimizer               & \texttt{adam}, \texttt{adagrad} & adam \\
+    \bottomrule
+    \end{tabular}
+    \label{tab:tunable_hyperparameters}
+\end{table}
 
 \begin{figure}[h]
     \lstinputlisting[language=Python, caption=Hyperparameter extraction code snippet, label=code:hyperparameter_extraction]{code_chunks/sec_3_hp_extraction.py}
 \end{figure}
-
-\begin{table}[h]
-\centering
-\caption{Tunable Hyperparameters and Final Chosen Values}
-\begin{tabular}{lll}
-\toprule
-\textbf{Hyperparameter} & \textbf{Range/Choices} & \textbf{Final Value} \\
-\midrule
-learning rate           & $1{\times}10^{-4}$ to $1{\times}10^{-2}$ (log scale) & 0.00149 \\
-dropout-rate            & $0.0$ to $0.5$ (used if \texttt{use-dropout=true}) & 0.284 \\
-conv1-filters ($f_1$)   & $16$ to $128$ & 24 \\
-conv2-filters ($f_2$)   & $32$ to $256$ & 107 \\
-dense-units ($d$)       & $64$ to $512$ & 254 \\
-pooling                 & \texttt{max}, \texttt{avg} & max \\
-use-dropout             & \texttt{true}, \texttt{false} & true \\
-optimizer               & \texttt{adam}, \texttt{adagrad} & adam \\
-\bottomrule
-\end{tabular}
-\label{tab:tunable_hyperparameters}
-\end{table}
-
 
 \begin{figure}[p]
     \lstinputlisting[language=Python, caption=Hyperparameter tuning code extracts from \code{main.ipynb} and \code{src/train.py}; used to call \code{src/model.py} (\cref{code:model_definition}), label=code:hyperparameter_tuning]{code_chunks/sec_3_hp_tuning.py}
@@ -65,6 +62,8 @@ optimizer               & \texttt{adam}, \texttt{adagrad} & adam \\
 \newpage
 
 \section{Model Deployment} \label{sec:model_deployment}
+
+This model, as well as the transfer learning model (to be detailed in \cref{sec:transfer_learning}), was deployed using Amazon SageMaker.
 
 \begin{figure}[h]
     \centering
@@ -75,20 +74,27 @@ optimizer               & \texttt{adam}, \texttt{adagrad} & adam \\
 \end{figure}
 
 \begin{figure}[h]
-    \lstinputlisting[language=Python, caption=Model Deployment Code, label=code:deployment_endpoint]{code_chunks/sec_4_example_deployment.py}    
+    \lstinputlisting[language=Python, caption=Model Deployment and inference code snippet, label=code:deployment_endpoint]{code_chunks/sec_4_example_deployment.py}    
 \end{figure}
 
+\newpage
 
-\section{Transfer Learning}
+\section{Transfer Learning} \label{sec:transfer_learning}
 
 The list of the possible CNN structures available for use for transfer learning can be seen in \cite{keras_applications}. Of these, EfficientNetV2 was selected as the most suitable architecture due to its demonstrated balance between accuracy and computational efficiency on general image classification tasks. This makes it well-suited for the diverse and varied images present in the aiornot dataset \cite{keras_applications, tan2021efficientnetv2}.
 
-The model used EfficientNetB0, pre-trained on ImageNet, as a feature extractor with its classification head removed and average pooling applied. It was decided to unfreeze the last 10\% of the layers. A dropout layer with rate $p$ was added for regularisation, followed by a final dense layer with sigmoid activation for binary classification.
+The model used EfficientNetB0, pre-trained on ImageNet, as a feature extractor with its classification head removed and average pooling applied. It was decided to unfreeze the last 10\% of the layers. A dropout layer with rate $p$ was added for regularisation, followed by a final dense layer with sigmoid activation for binary classification. Snippets for the \code{src/transfer_learning.py} file, which was called by the \code{transfer_learning.ipynb} file to train the model can be seen in \cref{code:transfer_learning_code}.
 
+\begin{figure}[h]
+    \lstinputlisting[language=Python, caption=Transfer Learning Code Snippet, label=code:transfer_learning_code]{code_chunks/sec_5_transfer_learning.py}
+    \label{fig:transfer_learning_code}
+\end{figure}
 
-Using an endpoint, the model was then evaluated on its precision, recall, f1 score, and accuracy. \Cref{fig:endpoint} shows the endpoint configuration in Sagemaker. This allowed for evaluation of the models performance, whilst not being limited by the RAM limitations of the notebook environent in Sagemaker studio. 
+Using an endpoint (using the same deployment strategy as seen previously in \cref{code:deployment_endpoint}), the model was then evaluated on its precision, recall, f1 score, and accuracy. \Cref{fig:endpoint} shows the endpoint configuration in Sagemaker. This allowed for evaluation of the models performance, whilst not being limited by the RAM limitations of the notebook environent in Sagemaker studio. 
 
 Deploying the transfer learning model, again using a sagemaker endpoint allowed a comparison between both models on the holdout set.
+
+\newpage
 
 \section{Model Comparison And Evaluation}
 
@@ -99,14 +105,14 @@ The endpoints were deployed as real time endpoints, operating on a server and in
 \begin{table}[h]
 \centering
 \caption{Model Comparison}
-\begin{tabular}{lcccc}
+\begin{tabular}{rcccc}
 \toprule
 \textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1 Score} \\
 \midrule
 Main Model     & 0.854          & 0.833          & \textbf{0.906} & \textbf{0.868} \\
 Transfer Model & \textbf{0.856} & \textbf{0.875} & 0.849 & 0.862 \\
 \midrule
-Difference & 0.002 & 0.042 & 0.057 & 0.006 \\
+$\text{abs}(\text{Difference}) $ & 0.002 & 0.042 & 0.057 & 0.006 \\
 \bottomrule
 \end{tabular}
 \label{tab:model_comparison}
@@ -122,21 +128,49 @@ Difference & 0.002 & 0.042 & 0.057 & 0.006 \\
 
 The results of the model evaluation are summarized in \Cref{tab:model_comparison}. The table highlights the key performance indicators for each model. It can be seen that the EfficientNet transfer learning model and the main model have very comparable performance - with the EfficientNet model and main model achieving an accuracy of 85.6\% and 85.4\% respectively - a difference of only 0.2\%. Furthermore the EfficientNet and main model achieved F1 scores of 0.862 and 0.868 respectively, a difference of only 0.006.
 
-Where these models differ is their precision and recall. The EfficientNet model achieved a precision of 87.5\% (4.2\% higher than the main models 83.3\%.) The main model achieved a recall of 90.6\% (5.7\% higher than the EfficientNet models 84.9\%.) This means that the EfficientNet model is better at minimising false positive AI detection, whereas the main model is better at detecting AI cases without missing them (i.e. reducing false negatives). 
+Where these models differ is their precision and recall. The EfficientNet model achieved a precision of 87.5\% (4.2\% higher than the main models' 83.3\%.) The main model achieved a recall of 90.6\% (5.7\% higher than the EfficientNet models' 84.9\%.) This means that the EfficientNet model is better at minimising false positive AI detection, whereas the main model is better at detecting AI cases without missing them (i.e. reducing false negatives). 
 
-This is evident in \cref{fig:confusion_matrixes}, where the EfficientNet model has 32 false posiives compared to the main models 48. Similarly, the main model has only 25 false negatives, compared to the EfficientNet models 40.
+This is evident in \cref{fig:confusion_matrixes}, where the EfficientNet model has 32 false posiives compared to the main models' 48. Similarly, the main model has only 25 false negatives, compared to the EfficientNet models' 40.
 
 \section{AWS Sagemaker Information and Discussion}
 
-This project was developed using AWS Sagemaker. \Cref{fig:aws_cost_summary} depicts the overall cost summary of the project, which overall was less than \$15. This was achieved due to careful management of resources with a known budget of \$50 leading to selection of smaller instance types (using general purpose ml.c5.2xlarge instances for training and inference rather than larger, more expensive GPU instances). This of course, came at the cost of longer training times, but was deemed acceptable given the budget constraints, and the fact that the workflow would be very easily extensible to a more expensive configuration in a real world deployment scenario.
+This project was developed using AWS Sagemaker. \Cref{fig:jupyter_lab_space_config} shows the Jupyter lab space configuration used for the project. It can be seen that the smallest option, \code{ml.t3.medium} was used, as model training is done through training jobs, where the compute resources can be chosen to be seperate, allocated to the training job.
+
+\Cref{fig:file_top,fig:file_src} shows the file structure used in the project, run inside the Jupyter lab environment. It can be seen that the model decleration code (\code{src/model_def.py} \& \code{transfer_model.py}) \note{check i say model def everywhyere not just model} and the training code (\code{src/train.py} \& \code{train_transfer.py}) were kept seperate from the main notebooks
+
 
 \begin{figure}[h]
     \centering
-    \includegraphics[width=300px]{figures/aws_cost_summary.png} % Image filename
+    \includegraphics[width=0.8\linewidth]{figures/jupyter_lab_space_config.png} % Image filename
     \centering
-    \caption{Project Cost summary} % Caption
-    \label{fig:aws_cost_summary} % Label
+    \caption{Jupyter lab space configuration screenshot} % Caption
+    \label{fig:jupyter_lab_space_config} % Label
 \end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{minipage}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/file_structure_top.png}
+        \caption{Top level file structure screenshot}
+        \label{fig:file_top}
+    \end{minipage}\hfill
+    \begin{minipage}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/file_structure_src.png}
+        \caption{Files inside the \code{src} directory screenshot}
+        \label{fig:file_src}
+    \end{minipage}\hfill
+    \begin{minipage}{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/aws_cost_summary.png} % Image filename
+        \caption{Project AWS cost summary screenshot} % Caption
+        \label{fig:aws_cost_summary} % Label
+    \end{minipage}\hfill
+\end{figure}
+
+
+\Cref{fig:aws_cost_summary} depicts the overall cost summary of the project, which overall was less than \$15. This was achieved due to careful management of resources with a known budget of \$50 leading to selection of smaller instance types (using general purpose ml.c5.2xlarge instances for training and inference rather than larger, more expensive GPU instances). This of course, came at the cost of longer training times, but was deemed acceptable given the budget constraints, and the fact that the workflow would be very easily extensible to a more expensive configuration in a real world deployment scenario.
 
 
 \note{mention the drawbacks of the deployment here, though have the code chunk (with the creation of the endpoint and the prediction extraction, (and in the appendix have the code snippets for the table and the confusion matrix))}
@@ -145,6 +179,8 @@ This project was developed using AWS Sagemaker. \Cref{fig:aws_cost_summary} depi
 \note{mention that due to inexperience with sagemaker i ran into memory problems when training the transfer learning model, and therefore had to compromise in having a smaller batch size, and downsampling the images to a resolution of 224x224.}
 
 
+\newpage
+
 \section{Final Model Discussion and Conclusion}
 
 This report proposed two models to detect if an image is generated using ai - one model developed through hyperparameter tuning, and the other through transfer learning from EfficientNet. The results indicate that both models perform comparably, with slight differences in precision and recall.
@@ -152,6 +188,9 @@ This report proposed two models to detect if an image is generated using ai - on
 The original research objective was to make a tool to distinguish between AI-generated and real images, ultimately as a means to identify the spread of misinformation and other harms in online discourse. Were this model to be deployed as a 'first step' with the intention of more thoughrough investigation, it would be more beneficial to be relaxed on false positives, and minimise false negatives, given the false positives would be vindicated with further analysis or research.
 
 It is for this reason that, assuming this approach, the main model would be the preferred model, as it has a higher recall (90.6\% vs 84.9\%) and therefore is slightly better at detecting AI-generated images without missing them. \note{talk about the paper at the start and that we didnt achieve research level performance, nor the experience to use the dataset they made}
+
+
+\note{talk about how with more resources, a transfer learning model would be great, as this one was the B0 model, and more beefy models could certainly continue this pattern of good generalisability to this classification task}
 
 \note{mention the limitation of fixed resolutions/aspect ratio of 1:1}
 
