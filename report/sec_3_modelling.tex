@@ -1,38 +1,41 @@
+
+\newpage
+
 \section{Model Structure}
 
-- detail the structure of the model, eg. the training was called in a notebook (main.ipynb) but the training and the model was defined in discrete python files of their own in accordance with modularity best practices.
+With the data acquired from HuggingFace, the process of making a machine learning model could begin. The model that was developed was a convolutional neural network (CNN). It accepts full-size images of shape $(512, 512, 3)$, with each image being an rgb image with values ranging from 0 to 255. \Cref{code:model_definition} shows the \code{src/model.py} file, which was called by the \code{main.ipynb} and \code{src/train.py} files to train and tune the model.
 
-\subsection{Model Structure}
+\begin{figure}[h]
+    \lstinputlisting[language=Python, caption=Model definition code, label=code:model_definition]{code_chunks/sec_3_model.py}
+\end{figure}
 
-The model is a convolutional neural network (CNN) designed for binary image classification. It accepts full-size images of shape $(512, 512, 3)$.
+For the first section, a \code{Conv2D} layer was applied with a kernel size of $3{\times}3$ and a tunable number of filters, $f_{1}$. The stride was fixed at its default value of $1$, with padding set to \emph{same} which preserves the spatial dimensions of the input feature maps, at the cost of increased computational cost. A \code{ReLU} activation function was used due to its simplicity and its ability to address vanishing gradients.
 
-Input $(512\times 512\times 3)$ $\rightarrow$ \texttt{Rescaling}(1/255) $\rightarrow$ 
-\texttt{Conv2D}($f_1$, $3{\times}3$, ReLU) $\rightarrow$ \texttt{Pool} (max/avg) $\rightarrow$
-\texttt{Conv2D}($f_2$, $3{\times}3$, ReLU) $\rightarrow$ \texttt{Pool} (max/avg) $\rightarrow$
-Global (max/avg) pooling $\rightarrow$ \texttt{Flatten} $\rightarrow$
-\texttt{Dense}($d$, ReLU) $\rightarrow$ optional \texttt{Dropout}($p$) $\rightarrow$
-\texttt{Dense}(1, sigmoid). Trained with binary cross-entropy and \texttt{adam}/\texttt{adagrad}.
+This was followed by a pooling layer, where either max pooling or average pooling could be selected. By default, the pooling operation uses a window of size $2{\times}2$ with stride $2$, reducing the spatial resolution of the feature maps by half while retaining the most salient information.
 
-Adam was chosen as one of the considered optimisers, as it is known to converge rapidly, and rectifies vanishing learning rate and high variance, therefore being the most popular optimiser \cite{RAIAAN2024100470}
+The second convolutional block repeated this process with a kernel size of $3{\times}3$ and a tunable number of filters, $f_{2}$, again followed by either max or average pooling with window size $2{\times}2$ and stride $2$.
 
-Adagrad was chosen as the second potential optimiser, as the learning rate would not need manual tuning, and is known to perform better than alternatives like SGD, MBGD, and primitive momentum based optimisers. Though it should be noted that it has the weakness of a constantly decreasing learning rate, resulting in slower convergence \cite{RAIAAN2024100470}
+After the two convolutional blocks, a global pooling layer was applied to remove the spatial dimensions, with a max or average pooling being optional. The dense head consisted of a flattening step, followed by a fully connected layer with $d$ units and ReLU activation. An optional dropout layer with rate $p$ was included for regularisation. The final output layer was a single neuron with sigmoid activation, producing a probability for binary classification.
 
-\note{mention that the most optimal loss function for binary classification task is binary cross entropy.}
+Adam was chosen as one of the considered optimisers, as it is known to converge rapidly, and rectifies vanishing learning rate and high variance, therefore being the most popular optimiser \cite{RAIAAN2024100470}. Adagrad was chosen as the second potential optimiser, as the learning rate would not need manual tuning, and is known to perform better than alternatives like SGD, MBGD, and primitive momentum based optimisers. Though it should be noted that it has the weakness of a constantly decreasing learning rate, resulting in slower convergence \cite{RAIAAN2024100470}
 
-\note{mention the fact that i trained on 3 epochs}
+The loss function that was used for this model was binary cross-entropy, as it is the most suitable loss function for binary classification tasks. Each model training instance was trained for 3 epochs. \note{cuts off abruptly}
+
+\newpage
 
 \subsection{Hyperparameter Tuning with Hyperband}
 
-Hyperparameter tuning was performed to maximise the models performance through iteration of most of its parameters. 
+Hyperparameter tuning was performed to maximise the models performance through iteration of most of its parameters. The hyperparamter tuning process was performed on the small train set, for faster iteration.
 
-\Cref{tab:tunable_hyperparameters} shows a list of the parameters being tuned in the above model. It is evident that this is a very large parameter space, and it is therefore not feasible to find the best possible hyperparamet.
-
-\begin{figure}[p]
-\lstinputlisting[language=Python, caption=Hyperparameter tuning code extracts from \code{main.ipynb} and \code{src/train.py}, label=code:hyperparameter_tuning]{code_chunks/sec_3_hp_tuning.py}
-\end{figure}
-
+\Cref{tab:tunable_hyperparameters}, summarises the code snippets seen in \cref{code:hyperparameter_tuning}, depicting a list of the parameters being tuned in the above model. It is evident that this is a very large parameter space, and it is therefore not feasible to find the best possible hyperparamer.
 
 The Hyperband algorithm is used for hyperparameter optimization. Hyperband eliminates poorly performing hyperparameter combinations and focuses on promising ones, thus saving computational time compared to other methods like Bayesian optimization and grid search. 
+
+Following the initial tuning on the smaller dataset, the best hyperparameters were selected and used to train the model on the larger training set, the start of this can be seen in \cref{code:hyperparameter_extraction}
+
+\begin{figure}[h]
+    \lstinputlisting[language=Python, caption=Hyperparameter extraction code snippet, label=code:hyperparameter_extraction]{code_chunks/sec_3_hp_extraction.py}
+\end{figure}
 
 \begin{table}[h]
 \centering
@@ -55,8 +58,13 @@ optimizer               & \texttt{adam}, \texttt{adagrad} & adam \\
 \end{table}
 
 
-\section{Model Deployment} \label{sec:model_deployment}
+\begin{figure}[p]
+    \lstinputlisting[language=Python, caption=Hyperparameter tuning code extracts from \code{main.ipynb} and \code{src/train.py}; used to call \code{src/model.py} (\cref{code:model_definition}), label=code:hyperparameter_tuning]{code_chunks/sec_3_hp_tuning.py}
+\end{figure}
 
+\newpage
+
+\section{Model Deployment} \label{sec:model_deployment}
 
 \begin{figure}[h]
     \centering
@@ -66,11 +74,17 @@ optimizer               & \texttt{adam}, \texttt{adagrad} & adam \\
     \label{fig:endpoint} % Label
 \end{figure}
 
-The best hyperparameters found on the smaller training set were then extracted, and trained on the larger dataset. This 
+\begin{figure}[h]
+    \lstinputlisting[language=Python, caption=Model Deployment Code, label=code:deployment_endpoint]{code_chunks/sec_4_example_deployment.py}    
+\end{figure}
+
 
 \section{Transfer Learning}
 
 The list of the possible CNN structures available for use for transfer learning can be seen in \cite{keras_applications}. Of these, EfficientNetV2 was selected as the most suitable architecture due to its demonstrated balance between accuracy and computational efficiency on general image classification tasks. This makes it well-suited for the diverse and varied images present in the aiornot dataset \cite{keras_applications, tan2021efficientnetv2}.
+
+The model used EfficientNetB0, pre-trained on ImageNet, as a feature extractor with its classification head removed and average pooling applied. It was decided to unfreeze the last 10\% of the layers. A dropout layer with rate $p$ was added for regularisation, followed by a final dense layer with sigmoid activation for binary classification.
+
 
 Using an endpoint, the model was then evaluated on its precision, recall, f1 score, and accuracy. \Cref{fig:endpoint} shows the endpoint configuration in Sagemaker. This allowed for evaluation of the models performance, whilst not being limited by the RAM limitations of the notebook environent in Sagemaker studio. 
 
@@ -114,7 +128,7 @@ This is evident in \cref{fig:confusion_matrixes}, where the EfficientNet model h
 
 \section{AWS Sagemaker Information and Discussion}
 
-This project was developed using AWS Sagemaker. \Cref{fig:aws_cost_summary}, which overall was less than \$15. This was achieved due to careful management of resources with a known budget of \$50 leading to selection of smaller instance types (using general purpose ml.c5.2xlarge instances for training and inference rather than larger, more expensive GPU instances). This of course, came at the cost of longer training times, but was deemed acceptable given the budget constraints, and the fact that the workflow would be very easily extensible to a more expensive configuration in a real world deployment scenario.
+This project was developed using AWS Sagemaker. \Cref{fig:aws_cost_summary} depicts the overall cost summary of the project, which overall was less than \$15. This was achieved due to careful management of resources with a known budget of \$50 leading to selection of smaller instance types (using general purpose ml.c5.2xlarge instances for training and inference rather than larger, more expensive GPU instances). This of course, came at the cost of longer training times, but was deemed acceptable given the budget constraints, and the fact that the workflow would be very easily extensible to a more expensive configuration in a real world deployment scenario.
 
 \begin{figure}[h]
     \centering
@@ -126,6 +140,9 @@ This project was developed using AWS Sagemaker. \Cref{fig:aws_cost_summary}, whi
 
 
 \note{mention the drawbacks of the deployment here, though have the code chunk (with the creation of the endpoint and the prediction extraction, (and in the appendix have the code snippets for the table and the confusion matrix))}
+
+
+\note{mention that due to inexperience with sagemaker i ran into memory problems when training the transfer learning model, and therefore had to compromise in having a smaller batch size, and downsampling the images to a resolution of 224x224.}
 
 
 \section{Final Model Discussion and Conclusion}
