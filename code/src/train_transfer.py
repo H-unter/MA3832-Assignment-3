@@ -52,18 +52,16 @@ def main():
 
     sm_model_dir = os.environ.get("SM_MODEL_DIR", "/opt/ml/model")
     save_model_dir = sm_model_dir if str(args.model_dir).startswith("s3://") else (args.model_dir or sm_model_dir)
-    if str(args.model_dir).startswith("s3://"):
-        print(f"WARNING: args.model_dir is an S3 URI ({args.model_dir}). Overriding to local SM_MODEL_DIR: {sm_model_dir}")
     os.makedirs(save_model_dir, exist_ok=True)
     print("Resolved model save directory:", save_model_dir)
 
     train_path = find_npz(args.train)
-    test_path  = find_npz(args.test)
+    test_path = find_npz(args.test)
     train_ds, n_train = make_ds(train_path, args.batch_size, args.height, args.width, shuffle=True)
-    val_ds,   n_val   = make_ds(test_path,  args.batch_size, args.height, args.width, shuffle=False)
+    val_ds, n_val = make_ds(test_path,  args.batch_size, args.height, args.width, shuffle=False)
 
     steps_per_epoch = max(1, math.ceil(n_train / args.batch_size))
-    val_steps       = max(1, math.ceil(n_val   / args.batch_size))
+    val_steps = max(1, math.ceil(n_val / args.batch_size))
     print("train_samples:", n_train, "val_samples:", n_val, "steps:", steps_per_epoch, "val_steps:", val_steps)
 
     model = build_transfer_model(
@@ -99,7 +97,7 @@ def main():
     pre = float(geth("val_precision", [0.0])[-1])
     rec = float(geth("val_recall",    [0.0])[-1])
     auc = float(geth("val_auc",       [0.0])[-1])
-    f1  = (2 * pre * rec) / (pre + rec + 1e-12)
+    f1  = (2 * pre * rec) / (pre + rec + 1e-12) # check
 
     print(f"val_precision: {pre:.6f}")
     print(f"val_recall: {rec:.6f}")

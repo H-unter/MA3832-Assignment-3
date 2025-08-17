@@ -71,13 +71,11 @@ def main():
 
     args = parser.parse_args()
     if args.model_dir and str(args.model_dir).startswith("s3://"):
-        # someone passed an s3 path — override and warn
         print(f"WARNING: args.model_dir is an S3 URI ({args.model_dir}). Overriding to local SM_MODEL_DIR: {sm_model_dir}")
         save_model_dir = sm_model_dir
     else:
         save_model_dir = args.model_dir or sm_model_dir
     print("Resolved model save directory:", save_model_dir)
-    # make sure the directory exists
     os.makedirs(save_model_dir, exist_ok=True)
 
     train_path = find_npz(args.train)
@@ -121,7 +119,6 @@ def main():
     final_val = history.history.get("val_binary_accuracy", [None])[-1]
     print("val_accuracy:", round(final_val, 4))
 
-    
     prec_m = tf.keras.metrics.Precision()
     rec_m  = tf.keras.metrics.Recall()
     auc_m  = tf.keras.metrics.AUC()
@@ -136,9 +133,8 @@ def main():
     prec = float(prec_m.result().numpy())
     rec = float(rec_m.result().numpy())
     auc = float(auc_m.result().numpy())
-    f1 = 2 * prec * rec / (prec + rec + 1e-12)
+    f1 = 2 * prec * rec / (prec + rec + 1e-12) # check
     
-    # Print lines exactly in this format so metric_definitions regex can match them
     print(f"val_precision: {prec:.6f}")
     print(f"val_recall: {rec:.6f}")
     print(f"val_f1: {f1:.6f}")
