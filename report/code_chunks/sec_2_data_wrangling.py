@@ -2,37 +2,52 @@
 with open("token.txt", "r") as file:
     hugging_face_token = file.read().strip() # must have credentials to access the dataset
 
-login(token=hugging_face_token)
-raw_dataset = load_dataset('competitions/aiornot') # hugging face method to import the data
+raw_dataset = load_dataset('competitions/aiornot')
+raw_dataset = raw_dataset['train'] # remove the unused 'test' set with no labels
+dataset_length = len(raw_dataset)
 
-dataset = raw_dataset['train'] # remove the unused 'test' set with no labels
+# first holdout 500 images for final model evaluation
+holdout_test = raw_dataset.select(range(500))
+dataset = raw_dataset.select(range(500, len(raw_dataset)))
 
 # split dataset into:
 # - small_train (10% of original)
 # - train (70% of original)
 # - test (20% of original)
 
-# First split: small_train (10%) and remainder (90%)
+# first split: small_train (10%) and remainder (90%)
 split_1 = dataset.train_test_split(train_size=0.1, seed=RANDOM_SEED)
 small_train = split_1["train"]
 remainder = split_1["test"]
+
+# second split: train (70%) and test (20%)
 split_2 = remainder.train_test_split(train_size=0.7 / 0.9, seed=RANDOM_SEED)
 train = split_2["train"]
 test = split_2["test"]
 
-is_any_data_unused = not(small_train.num_rows + train.num_rows + test.num_rows == dataset.num_rows)
+is_any_data_unused = not(holdout_test.num_rows + small_train.num_rows + train.num_rows + test.num_rows == dataset.num_rows)
 assert not is_any_data_unused, "Some data is unused in the splits."
 
-def format_dataset(hugging_face_dataset, batch_size=32, shuffle=True):
-    """convert a hugging face dataset to a TensorFlow dataset"""
-    dataset = hugging_face_dataset.with_format(type='tf', columns=['image', 'label'], output_all_columns=True)
-    dataset = dataset.to_tf_dataset(columns='image', label_cols='label', batch_size=batch_size, shuffle=shuffle)
+def to_numpy(dataset):
+    images = np.stack([np.asarray(img) for img in dataset["image"]])
+    labels = np.array(dataset["label"])
+    return images, labels
 
-    # normalse the image channels to be in the range [0, 1] rather than [0, 255]
-    dataset = dataset.map(lambda image, label: (tf.cast(image, tf.float32) / 255.0, label), num_parallel_calls=tf.data.AUTOTUNE)
-    # return prefetched dataset
-    return dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+x_small, y_small = to_numpy(small_train)
+x_train, y_train = to_numpy(train)
+x_test, y_test = to_numpy(test)
+x_holdout, y_holdout = to_numpy(holdout_test)
 
-small_train_tf = format_dataset(small_train, batch_size=32, shuffle=True)
-train_tf = format_dataset(train, batch_size=32, shuffle=True)
-test_tf = format_dataset(test, batch_size=32, shuffle=False)
+sampler = RandomUnderSampler(random_state=RANDOM_SEED)
+
+def resample_images_and_labels(images, labels, sampler):
+    flat_images = images.reshape((images.shape[0], -1))
+    resampled_flat, resampled_labels = sampler.fit_resample(flat_images, labels)
+    resampled_images = resampled_flat.reshape((-1,) + images.shape[1:])
+    return resampled_images, resampled_labels
+
+x_small_resampled, y_small_resampled = resample_images_and_labels(x_small, y_small, sampler)
+x_train_resampled, y_train_resampled = resample_images_and_labels(x_train, y_train, sampler)
+x_test_resampled, y_test_resampled = resample_images_and_labels(x_test, y_test, sampler)
+
+# save to npz file and upload to s3 bucket
